@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: {{ settings.background_color }};
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -29,7 +29,7 @@
             transform: translate(-50%, -50%);
             width: 80%;
             height: 80%;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/><text x="100" y="110" text-anchor="middle" fill="rgba(255,255,255,0.1)" font-size="60" font-family="Arial">🎓</text><text x="100" y="140" text-anchor="middle" fill="rgba(255,255,255,0.1)" font-size="16" font-family="Arial">COACHING</text></svg>') center/contain no-repeat;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/><text x="100" y="110" text-anchor="middle" fill="rgba(255,255,255,0.1)" font-size="60" font-family="Arial">{{ settings.logo_emoji }}</text><text x="100" y="140" text-anchor="middle" fill="rgba(255,255,255,0.1)" font-size="16" font-family="Arial">{{ settings.logo_text }}</text></svg>') center/contain no-repeat;
             filter: blur(20px);
             opacity: 0.3;
             z-index: 1;
@@ -213,6 +213,109 @@
             from { box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); }
             to { box-shadow: 0 0 30px rgba(255, 255, 255, 0.5); }
         }
+
+        /* Gate Button Styles */
+        .gate-section {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .gate-button {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .gate-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .gate-button:active {
+            transform: translateY(-1px);
+        }
+
+        /* Gate Animation Overlay */
+        .gate-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+        }
+
+        .gate-left, .gate-right {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            transition: transform 2s ease-in-out;
+        }
+
+        .gate-left {
+            left: 0;
+            transform: translateX(0);
+        }
+
+        .gate-right {
+            right: 0;
+            transform: translateX(0);
+        }
+
+        .gate-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 1001;
+        }
+
+        .gate-lock {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: lockShake 0.5s ease-in-out infinite;
+        }
+
+        .gate-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+        }
+
+        @keyframes lockShake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+
+        .gate-opening .gate-left {
+            transform: translateX(-100%);
+        }
+
+        .gate-opening .gate-right {
+            transform: translateX(100%);
+        }
+
+        .gate-opening .gate-center {
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
     </style>
 </head>
 <body>
@@ -227,7 +330,7 @@
     <div class="container glow">
         <div class="current-time" id="current-time"></div>
         
-        <h1 class="launch-message">🚀 Website Will Be Live Soon!</h1>
+        <h1 class="launch-message">{{ settings.launch_message }}</h1>
         
         <div class="countdown" id="countdown">
             <div class="countdown-item">
@@ -249,17 +352,36 @@
         </div>
         
         <p class="subtitle">
-            Get ready for an amazing experience! Our coaching platform is launching soon with incredible features and opportunities.
+            {{ settings.subtitle }}
         </p>
         
         <div class="progress-bar">
             <div class="progress-fill" id="progress-fill"></div>
         </div>
+        
+        {% if settings.show_gate_button and launch_status %}
+        <div class="gate-section" id="gate-section">
+            <button class="gate-button" onclick="openGate()">
+                {{ settings.gate_button_text }}
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Gate Animation Overlay -->
+    <div class="gate-overlay" id="gate-overlay">
+        <div class="gate-left"></div>
+        <div class="gate-right"></div>
+        <div class="gate-center">
+            <div class="gate-lock">🔒</div>
+            <div class="gate-text">Opening...</div>
+        </div>
     </div>
 
     <script>
-        // Set launch date (change this to your actual launch date)
-        const launchDate = new Date('2025-01-15T00:00:00').getTime();
+        // Get launch date from server settings
+        const launchDate = new Date('{{ settings.launch_date }}').getTime();
+        const launchStatus = {{ 'true' if launch_status else 'false' }};
         
         function updateCountdown() {
             const now = new Date().getTime();
@@ -327,6 +449,22 @@
             const container = document.querySelector('.container');
             container.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
         });
+
+        // Gate opening function
+        function openGate() {
+            const gateOverlay = document.getElementById('gate-overlay');
+            gateOverlay.style.display = 'block';
+            
+            // Start gate opening animation
+            setTimeout(() => {
+                gateOverlay.classList.add('gate-opening');
+            }, 500);
+            
+            // Redirect to main site after animation
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 3000);
+        }
     </script>
 </body>
 </html>

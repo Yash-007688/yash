@@ -4,6 +4,7 @@ import pandas as pd
 import os
 from user_handler import check_user_credentials, add_new_user, initialize_user_file
 from excel_handler import get_excel_data, load_data, save_data, log_edit
+from admin_settings import load_settings, save_settings, get_launch_status
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -27,9 +28,14 @@ oauth.register(
 initialize_user_file()
 
 
-# ✅ Home Route (Redirect to Dashboard or Login)
+# ✅ Home Route (Redirect to Dashboard, Login, or Countdown)
 @app.route("/")
 def home():
+    # Check if countdown is active and website is not live
+    settings = load_settings()
+    if settings.get("is_active", True) and not get_launch_status():
+        return redirect(url_for("countdown"))
+    
     if "user" in session:
         return redirect(url_for("dashboard"))
     return redirect(url_for("login"))
@@ -38,7 +44,59 @@ def home():
 # ✅ Countdown Page (Before Launch)
 @app.route("/countdown")
 def countdown():
-    return render_template("countdown.html")
+    settings = load_settings()
+    launch_status = get_launch_status()
+    return render_template("countdown.html", settings=settings, launch_status=launch_status)
+
+
+# ✅ Admin Countdown Settings Panel
+@app.route("/admin/countdown")
+def admin_countdown():
+    if "user" not in session or session["role"] != "Admin":
+        return redirect(url_for("login"))
+    
+    settings = load_settings()
+    launch_status = get_launch_status()
+    return render_template("admin_countdown.html", settings=settings, launch_status=launch_status)
+
+
+# ✅ Update Countdown Settings
+@app.route("/admin/countdown/update", methods=["POST"])
+def update_countdown_settings():
+    if "user" not in session or session["role"] != "Admin":
+        return jsonify({"success": False, "error": "Unauthorized"}), 403
+    
+    try:
+        data = request.get_json()
+        settings = load_settings()
+        
+        # Update settings with new values
+        for key, value in data.items():
+            if key in settings:
+                settings[key] = value
+        
+        if save_settings(settings):
+            return jsonify({"success": True, "message": "Settings updated successfully!"})
+        else:
+            return jsonify({"success": False, "error": "Failed to save settings"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ✅ Reset Countdown Settings to Defaults
+@app.route("/admin/countdown/reset", methods=["POST"])
+def reset_countdown_settings():
+    if "user" not in session or session["role"] != "Admin":
+        return jsonify({"success": False, "error": "Unauthorized"}), 403
+    
+    try:
+        from admin_settings import DEFAULT_SETTINGS
+        if save_settings(DEFAULT_SETTINGS):
+            return jsonify({"success": True, "message": "Settings reset to defaults!"})
+        else:
+            return jsonify({"success": False, "error": "Failed to reset settings"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ✅ User Login
