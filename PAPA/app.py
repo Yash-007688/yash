@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
+from authlib.integrations.flask_client import OAuth
 import pandas as pd
 import os
 from user_handler import check_user_credentials, add_new_user, initialize_user_file
@@ -6,6 +7,21 @@ from excel_handler import get_excel_data, load_data, save_data, log_edit
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
+
+# OAuth setup for Google Sign-In
+oauth = OAuth(app)
+oauth.register(
+    name="google",
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    access_token_url="https://oauth2.googleapis.com/token",
+    authorize_url="https://accounts.google.com/o/oauth2/v2/auth",
+    api_base_url="https://www.googleapis.com/oauth2/v2/",
+    client_kwargs={
+        "scope": "openid email profile",
+        "prompt": "select_account",
+    },
+)
 
 # ✅ Ensure Users File Exists
 initialize_user_file()
@@ -61,6 +77,35 @@ def dashboard():
 
     table_data = get_excel_data()
     return render_template("dashboard.html", user=session["user"], role=session["role"], table=table_data)
+
+
+# Google OAuth routes
+@app.route("/login/google")
+def login_google():
+    if not oauth.google.client_id or not oauth.google.client_secret:
+        return "Google OAuth is not configured on the server.", 500
+    redirect_uri = url_for("auth_google_callback", _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@app.route("/auth/google/callback")
+def auth_google_callback():
+    try:
+        token = oauth.google.authorize_access_token()
+        user_info_resp = oauth.google.get("userinfo")
+        user_info = user_info_resp.json()
+        email = user_info.get("email")
+        name = user_info.get("name") or email
+
+        if not email:
+            return redirect(url_for("login"))
+
+        # Set session for logged-in user; default role as Student
+        session["user"] = email
+        session["role"] = session.get("role") or "Student"
+        return redirect(url_for("dashboard"))
+    except Exception as e:
+        return f"Google login failed: {str(e)}", 400
 
 
 # =============================
