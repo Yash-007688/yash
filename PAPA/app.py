@@ -35,6 +35,12 @@ def home():
     return redirect(url_for("login"))
 
 
+# ✅ Countdown Page (Before Launch)
+@app.route("/countdown")
+def countdown():
+    return render_template("countdown.html")
+
+
 # ✅ User Login
 @app.route("/login", methods=["GET", "POST"])
 def login():
