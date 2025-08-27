@@ -439,6 +439,183 @@ $(document).ready(function() {
     if ($('#reelsTable tr').length === 0) {
         addSampleData();
     }
+
+    // Thumbnail Generator Functionality
+    $('.template-btn').on('click', function() {
+        var title = $(this).data('title');
+        $('#thumbnailTitle').val(title);
+    });
+
+    $('#generateThumbnail').on('click', function() {
+        var title = $('#thumbnailTitle').val();
+        var style = $('#thumbnailStyle').val();
+        
+        if (!title) {
+            showToast('Please enter a title for your thumbnail!', 'warning');
+            return;
+        }
+        
+        var $btn = $(this);
+        var originalText = $btn.html();
+        
+        $btn.prop('disabled', true);
+        $btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Creating EPIC Thumbnail...');
+        
+        // Show loading in preview
+        $('#thumbnailPreview').html('<div class="thumbnail-loading"></div>');
+        $('#thumbnailActions').hide();
+        
+        $.ajax({
+            url: '/api/generate_thumbnail',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                title: title,
+                style: style
+            }),
+            success: function(response) {
+                if (response.success) {
+                    // Display thumbnail
+                    $('#thumbnailPreview').html(`
+                        <img src="${response.thumbnail_base64}" alt="Generated Thumbnail" class="thumbnail-success">
+                    `);
+                    
+                    // Show action buttons
+                    $('#thumbnailActions').show();
+                    
+                    // Store thumbnail path for download
+                    $('#downloadThumbnail').data('path', response.thumbnail_path);
+                    $('#downloadThumbnail').data('base64', response.thumbnail_base64);
+                    
+                    showToast(response.message, 'success');
+                } else {
+                    showToast(response.message, 'error');
+                    $('#thumbnailPreview').html(`
+                        <div class="text-center text-danger py-5">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <p>Failed to generate thumbnail</p>
+                        </div>
+                    `);
+                }
+            },
+            error: function() {
+                showToast('Error generating thumbnail', 'error');
+                $('#thumbnailPreview').html(`
+                    <div class="text-center text-danger py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p>Error generating thumbnail</p>
+                    </div>
+                `);
+            },
+            complete: function() {
+                $btn.prop('disabled', false);
+                $btn.html(originalText);
+            }
+        });
+    });
+
+    $('#downloadThumbnail').on('click', function() {
+        var base64 = $(this).data('base64');
+        if (base64) {
+            // Create download link
+            var link = document.createElement('a');
+            link.href = base64;
+            link.download = 'epic_youtube_thumbnail.jpg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('Thumbnail downloaded successfully!', 'success');
+        }
+    });
+
+    $('#useForVideo').on('click', function() {
+        var path = $(this).data('path');
+        if (path) {
+            // Add to reels table or use for current video
+            showToast('Thumbnail applied to video!', 'success');
+            $('#thumbnailGeneratorModal').modal('hide');
+        }
+    });
+
+    // Auto-generate random title suggestions
+    function generateRandomTitle() {
+        var templates = [
+            "INSANE Hindi Comedy That Will Make You CRY! 😂",
+            "EPIC Gaming Moment You Won't Believe! 🎮", 
+            "OMG This Vlog Will BLOW YOUR MIND! 🔥",
+            "CRAZY Dance Challenge Gone Wrong! 💃",
+            "AMAZING Cooking Hack That Actually Works! 👨‍🍳",
+            "WOW This Reaction is PURE GOLD! ⚡",
+            "INSANE Prank That Went Too Far! 😱",
+            "EPIC Fail That Made Me Famous! 🏆",
+            "MIND-BLOWING Secret Revealed! 🤯",
+            "UNBELIEVABLE Transformation! ✨",
+            "CRAZY Challenge That Broke the Internet! 🌐",
+            "EPIC Comeback That Shocked Everyone! 💪"
+        ];
+        
+        var randomTitle = templates[Math.floor(Math.random() * templates.length)];
+        $('#thumbnailTitle').val(randomTitle);
+    }
+
+    // Add random title generator button
+    $('#thumbnailTitle').after(`
+        <button type="button" class="btn btn-outline-info btn-sm mt-2" id="randomTitleBtn">
+            <i class="fas fa-dice me-1"></i>Generate Random Title
+        </button>
+    `);
+
+    $('#randomTitleBtn').on('click', function() {
+        generateRandomTitle();
+    });
+
+    // Thumbnail preview function
+    window.previewThumbnail = function(src) {
+        // Create modal for thumbnail preview
+        var modal = $(`
+            <div class="modal fade" id="thumbnailPreviewModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning text-dark">
+                            <h5 class="modal-title">
+                                <i class="fas fa-eye me-2"></i>Thumbnail Preview
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img src="${src}" class="img-fluid rounded" alt="Thumbnail Preview">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-success" onclick="downloadThumbnail('${src}')">
+                                <i class="fas fa-download me-2"></i>Download
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+        
+        $('body').append(modal);
+        modal.modal('show');
+        
+        modal.on('hidden.bs.modal', function() {
+            modal.remove();
+        });
+    };
+
+    // Download thumbnail function
+    window.downloadThumbnail = function(src) {
+        var link = document.createElement('a');
+        link.href = src;
+        link.download = 'epic_youtube_thumbnail.jpg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('Thumbnail downloaded successfully!', 'success');
+    };
 });
 
 function addSampleData() {

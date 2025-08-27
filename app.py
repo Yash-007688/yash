@@ -8,6 +8,10 @@ import requests
 from datetime import datetime
 import threading
 import time
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
+import random
+import io
+import base64
 # Selenium imports removed for simplified version
 # from selenium import webdriver
 # from selenium.webdriver.common.by import By
@@ -238,6 +242,241 @@ def get_logs():
         'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S')
     } for log in logs])
 
+@app.route('/api/generate_thumbnail', methods=['POST'])
+@login_required
+def generate_thumbnail():
+    data = request.get_json()
+    title = data.get('title', 'EPIC YouTube Video! 🔥')
+    style = data.get('style', 'gaming')
+    
+    try:
+        # Create thumbnail
+        thumbnail_img = create_catchy_thumbnail(title, style)
+        
+        # Save thumbnail
+        filename = f"custom_thumbnail_{current_user.id}_{int(time.time())}.jpg"
+        thumbnail_path = save_thumbnail(thumbnail_img, filename)
+        
+        # Convert to base64 for immediate preview
+        img_buffer = io.BytesIO()
+        thumbnail_img.save(img_buffer, format='JPEG', quality=85)
+        img_str = base64.b64encode(img_buffer.getvalue()).decode()
+        
+        return jsonify({
+            'success': True,
+            'thumbnail_path': thumbnail_path,
+            'thumbnail_base64': f'data:image/jpeg;base64,{img_str}',
+            'message': f'Created EPIC {style} thumbnail!'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error creating thumbnail: {str(e)}'
+        }), 500
+
+@app.route('/api/get_thumbnail_styles')
+@login_required
+def get_thumbnail_styles():
+    styles = [
+        {
+            'id': 'gaming',
+            'name': 'Gaming Style',
+            'description': 'Dark neon colors with EPIC text effects',
+            'colors': ['Dark Blue', 'Purple', 'Neon Pink', 'Electric Blue']
+        },
+        {
+            'id': 'vlog',
+            'name': 'Vlog Style', 
+            'description': 'Bright energetic colors for lifestyle content',
+            'colors': ['Orange', 'Light Blue', 'Yellow', 'Pink']
+        },
+        {
+            'id': 'default',
+            'name': 'Classic Style',
+            'description': 'Professional gradient backgrounds',
+            'colors': ['Blue', 'Purple', 'Red', 'Green']
+        }
+    ]
+    return jsonify(styles)
+
+def create_catchy_thumbnail(title, style="gaming"):
+    """Create a catchy, arrogant, fancy thumbnail like popular YouTubers"""
+    
+    # Thumbnail dimensions (YouTube standard)
+    width, height = 1280, 720
+    
+    # Create base image with gradient background
+    if style == "gaming":
+        # Gaming style - dark with neon colors
+        colors = [
+            [(20, 20, 40), (60, 20, 80)],  # Dark blue to purple
+            [(40, 10, 30), (80, 20, 60)],  # Dark red to purple
+            [(10, 30, 40), (30, 60, 80)],  # Dark cyan to blue
+        ]
+    elif style == "vlog":
+        # Vlog style - bright and energetic
+        colors = [
+            [(255, 100, 50), (255, 150, 100)],  # Orange to light orange
+            [(100, 200, 255), (150, 220, 255)],  # Light blue
+            [(255, 200, 100), (255, 220, 150)],  # Light yellow
+        ]
+    else:
+        # Default style
+        colors = [
+            [(50, 50, 100), (100, 50, 150)],  # Blue to purple
+            [(100, 50, 50), (150, 50, 100)],  # Red to purple
+            [(50, 100, 50), (100, 150, 100)],  # Green
+        ]
+    
+    # Choose random color combination
+    color_pair = random.choice(colors)
+    
+    # Create gradient background
+    img = Image.new('RGB', (width, height), color_pair[0])
+    draw = ImageDraw.Draw(img)
+    
+    # Create gradient effect
+    for y in range(height):
+        r = int(color_pair[0][0] + (color_pair[1][0] - color_pair[0][0]) * y / height)
+        g = int(color_pair[0][1] + (color_pair[1][1] - color_pair[0][1]) * y / height)
+        b = int(color_pair[0][2] + (color_pair[1][2] - color_pair[0][2]) * y / height)
+        draw.line([(0, y), (width, y)], fill=(r, g, b))
+    
+    # Add some geometric shapes for visual appeal
+    if style == "gaming":
+        # Add neon-style geometric shapes
+        for i in range(5):
+            x1 = random.randint(0, width)
+            y1 = random.randint(0, height)
+            x2 = random.randint(0, width)
+            y2 = random.randint(0, height)
+            neon_color = random.choice([(255, 0, 100), (0, 255, 200), (255, 255, 0), (255, 100, 255)])
+            draw.line([(x1, y1), (x2, y2)], fill=neon_color, width=3)
+    
+    # Add some circles or rectangles
+    for i in range(3):
+        x = random.randint(50, width-100)
+        y = random.randint(50, height-100)
+        size = random.randint(50, 150)
+        if random.choice([True, False]):
+            draw.ellipse([x, y, x+size, y+size], outline=(255, 255, 255, 100), width=2)
+        else:
+            draw.rectangle([x, y, x+size, y+size], outline=(255, 255, 255, 100), width=2)
+    
+    # Add text with fancy styling
+    try:
+        # Try to use a bold font, fallback to default if not available
+        font_size = 80
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+        except:
+            font = ImageFont.load_default()
+    except:
+        font = ImageFont.load_default()
+    
+    # Split title into words for better layout
+    words = title.split()
+    if len(words) > 6:
+        # Take first 6 words and add ellipsis
+        title = " ".join(words[:6]) + "..."
+    
+    # Calculate text position (center)
+    bbox = draw.textbbox((0, 0), title, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+    x = (width - text_width) // 2
+    y = (height - text_height) // 2
+    
+    # Add text shadow/outline for gaming style
+    if style == "gaming":
+        # Add multiple outlines for neon effect
+        for offset in range(1, 4):
+            draw.text((x-offset, y-offset), title, font=font, fill=(0, 0, 0))
+            draw.text((x+offset, y-offset), title, font=font, fill=(0, 0, 0))
+            draw.text((x-offset, y+offset), title, font=font, fill=(0, 0, 0))
+            draw.text((x+offset, y+offset), title, font=font, fill=(0, 0, 0))
+        
+        # Main text in bright color
+        draw.text((x, y), title, font=font, fill=(255, 255, 255))
+    else:
+        # Regular text with shadow
+        draw.text((x+2, y+2), title, font=font, fill=(0, 0, 0))
+        draw.text((x, y), title, font=font, fill=(255, 255, 255))
+    
+    # Add some catchy elements
+    if style == "gaming":
+        # Add gaming elements like "EPIC", "INSANE", "OMG"
+        gaming_words = ["EPIC", "INSANE", "OMG", "WOW", "AMAZING", "CRAZY"]
+        word = random.choice(gaming_words)
+        
+        # Position in top-right corner
+        try:
+            small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
+        except:
+            small_font = ImageFont.load_default()
+        
+        bbox = draw.textbbox((0, 0), word, font=small_font)
+        word_width = bbox[2] - bbox[0]
+        word_x = width - word_width - 50
+        word_y = 50
+        
+        # Add background for the word
+        draw.rectangle([word_x-10, word_y-10, word_x+word_width+10, word_y+40], 
+                      fill=(255, 0, 100))
+        draw.text((word_x, word_y), word, font=small_font, fill=(255, 255, 255))
+    
+    # Add some emoji-like elements
+    emoji_elements = ["🔥", "💯", "⚡", "🎮", "🏆", "💪"]
+    if style == "vlog":
+        emoji_elements = ["🔥", "💯", "⚡", "🎥", "📱", "💪"]
+    
+    # Add emoji text
+    emoji = random.choice(emoji_elements)
+    try:
+        emoji_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 60)
+    except:
+        emoji_font = ImageFont.load_default()
+    
+    emoji_x = 50
+    emoji_y = height - 100
+    draw.text((emoji_x, emoji_y), emoji, font=emoji_font, fill=(255, 255, 255))
+    
+    # Add some additional text elements
+    if style == "gaming":
+        # Add "NEW" or "LIVE" badge
+        badge_text = random.choice(["NEW", "LIVE", "HOT"])
+        badge_x = 50
+        badge_y = 50
+        
+        # Red background for badge
+        draw.rectangle([badge_x-10, badge_y-10, badge_x+80, badge_y+40], 
+                      fill=(255, 0, 0))
+        draw.text((badge_x, badge_y), badge_text, font=small_font, fill=(255, 255, 255))
+    
+    # Apply some filters for extra appeal
+    if style == "gaming":
+        # Add slight blur to background elements
+        img = img.filter(ImageFilter.GaussianBlur(radius=0.5))
+    
+    # Enhance contrast
+    enhancer = ImageEnhance.Contrast(img)
+    img = enhancer.enhance(1.2)
+    
+    # Enhance saturation
+    enhancer = ImageEnhance.Color(img)
+    img = enhancer.enhance(1.3)
+    
+    return img
+
+def save_thumbnail(img, filename):
+    """Save thumbnail to static folder"""
+    thumbnail_dir = os.path.join(os.path.dirname(__file__), 'static', 'thumbnails')
+    os.makedirs(thumbnail_dir, exist_ok=True)
+    
+    filepath = os.path.join(thumbnail_dir, filename)
+    img.save(filepath, 'JPEG', quality=95)
+    return f'/static/thumbnails/{filename}'
+
 def run_automation(user_id):
     global automation_running
     
@@ -271,11 +510,33 @@ def run_automation(user_id):
                 # Simulate downloading and processing reels
                 time.sleep(2)
                 
+                # Generate catchy title
+                catchy_titles = [
+                    "INSANE Hindi Comedy That Will Make You CRY! 😂",
+                    "EPIC Gaming Moment You Won't Believe! 🎮",
+                    "OMG This Vlog Will BLOW YOUR MIND! 🔥",
+                    "CRAZY Dance Challenge Gone Wrong! 💃",
+                    "AMAZING Cooking Hack That Actually Works! 👨‍🍳",
+                    "WOW This Reaction is PURE GOLD! ⚡",
+                    "INSANE Prank That Went Too Far! 😱",
+                    "EPIC Fail That Made Me Famous! 🏆"
+                ]
+                
+                title = random.choice(catchy_titles)
+                
+                # Create catchy thumbnail
+                thumbnail_style = random.choice(["gaming", "vlog"])
+                thumbnail_img = create_catchy_thumbnail(title, thumbnail_style)
+                
+                # Save thumbnail
+                filename = f"thumbnail_{user_id}_{int(time.time())}.jpg"
+                thumbnail_path = save_thumbnail(thumbnail_img, filename)
+                
                 # Create a sample reel entry
                 reel = Reel(
                     instagram_url="https://instagram.com/sample_reel",
-                    title="Sample Hindi Reel Title",
-                    thumbnail_path="/static/thumbnails/sample.jpg",
+                    title=title,
+                    thumbnail_path=thumbnail_path,
                     user_id=user_id,
                     status='processed'
                 )
@@ -283,7 +544,7 @@ def run_automation(user_id):
                 db.session.commit()
                 
                 log = ProcessLog(
-                    message=f"Processed reel from {account.username}",
+                    message=f"Created EPIC thumbnail for: {title}",
                     level='success',
                     user_id=user_id
                 )
