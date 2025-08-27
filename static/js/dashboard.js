@@ -570,6 +570,114 @@ $(document).ready(function() {
         generateRandomTitle();
     });
 
+    // Target Account Management
+    $('#addTargetAccount').on('click', function() {
+        var username = $('#targetUsername').val();
+        var accountType = $('#accountType').val();
+        
+        if (!username) {
+            showToast('Please enter an Instagram username!', 'warning');
+            return;
+        }
+        
+        var $btn = $(this);
+        var originalText = $btn.html();
+        
+        $btn.prop('disabled', true);
+        $btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Adding...');
+        
+        $.ajax({
+            url: '/api/add_target_account',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                username: username,
+                account_type: accountType
+            }),
+            success: function(response) {
+                if (response.success) {
+                    showToast(response.message, 'success');
+                    $('#targetUsername').val('');
+                    refreshTargetAccountsList();
+                } else {
+                    showToast('Failed to add target account', 'error');
+                }
+            },
+            error: function() {
+                showToast('Error adding target account', 'error');
+            },
+            complete: function() {
+                $btn.prop('disabled', false);
+                $btn.html(originalText);
+            }
+        });
+    });
+
+    function refreshTargetAccountsList() {
+        $.ajax({
+            url: '/api/get_target_accounts',
+            method: 'GET',
+            success: function(response) {
+                var html = '';
+                if (response.length > 0) {
+                    response.forEach(function(account) {
+                        html += `
+                            <div class="card mb-2 target-account-item" data-id="${account.id}">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">@${account.username}</h6>
+                                            <small class="text-muted">${account.account_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</small>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-success me-2">Active</span>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="removeTargetAccount(${account.id})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html = `
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-target fa-3x mb-3"></i>
+                            <p>No target accounts configured</p>
+                            <small>Add Instagram accounts to start monitoring their content</small>
+                        </div>
+                    `;
+                }
+                $('#targetAccountsList').html(html);
+            },
+            error: function() {
+                showToast('Error loading target accounts', 'error');
+            }
+        });
+    }
+
+    // Remove target account function
+    window.removeTargetAccount = function(accountId) {
+        if (confirm('Are you sure you want to remove this account from monitoring?')) {
+            $.ajax({
+                url: `/api/remove_target_account/${accountId}`,
+                method: 'DELETE',
+                success: function(response) {
+                    if (response.success) {
+                        showToast(response.message, 'success');
+                        refreshTargetAccountsList();
+                    } else {
+                        showToast('Failed to remove account', 'error');
+                    }
+                },
+                error: function() {
+                    showToast('Error removing account', 'error');
+                }
+            });
+        }
+    };
+
     // Thumbnail preview function
     window.previewThumbnail = function(src) {
         // Create modal for thumbnail preview

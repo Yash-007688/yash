@@ -52,6 +52,15 @@ class YouTubeAccount(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class TargetAccount(db.Model):
+    """Instagram accounts to monitor for content extraction"""
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), nullable=False)
+    account_type = db.Column(db.String(50), default='content_creator')  # content_creator, influencer, brand, etc.
+    is_active = db.Column(db.Boolean, default=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 class Reel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     instagram_url = db.Column(db.String(500), nullable=False)
@@ -139,12 +148,14 @@ def logout():
 def dashboard():
     instagram_accounts = InstagramAccount.query.filter_by(user_id=current_user.id).all()
     youtube_accounts = YouTubeAccount.query.filter_by(user_id=current_user.id).all()
+    target_accounts = TargetAccount.query.filter_by(user_id=current_user.id).all()
     reels = Reel.query.filter_by(user_id=current_user.id).order_by(Reel.created_at.desc()).limit(10).all()
     logs = ProcessLog.query.filter_by(user_id=current_user.id).order_by(ProcessLog.created_at.desc()).limit(20).all()
     
     return render_template('dashboard.html', 
                          instagram_accounts=instagram_accounts,
                          youtube_accounts=youtube_accounts,
+                         target_accounts=target_accounts,
                          reels=reels,
                          logs=logs)
 
@@ -169,6 +180,67 @@ def add_instagram_account():
     db.session.commit()
     
     return jsonify({'success': True})
+
+@app.route('/api/add_target_account', methods=['POST'])
+@login_required
+def add_target_account():
+    """Add Instagram accounts to monitor for content extraction"""
+    data = request.get_json()
+    
+    # Create new model for target accounts
+    target_account = TargetAccount(
+        username=data['username'],
+        account_type=data.get('account_type', 'content_creator'),
+        user_id=current_user.id,
+        is_active=data.get('is_active', True)
+    )
+    db.session.add(target_account)
+    db.session.commit()
+    
+    log = ProcessLog(
+        message=f"Added target account to monitor: @{data['username']}",
+        level='info',
+        user_id=current_user.id
+    )
+    db.session.add(log)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': f'Added @{data["username"]} to monitoring list'})
+
+@app.route('/api/get_target_accounts')
+@login_required
+def get_target_accounts():
+    """Get all target accounts being monitored"""
+    target_accounts = TargetAccount.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{
+        'id': account.id,
+        'username': account.username,
+        'account_type': account.account_type,
+        'is_active': account.is_active,
+        'created_at': account.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    } for account in target_accounts])
+
+@app.route('/api/remove_target_account/<int:account_id>', methods=['DELETE'])
+@login_required
+def remove_target_account(account_id):
+    """Remove target account from monitoring"""
+    account = TargetAccount.query.filter_by(id=account_id, user_id=current_user.id).first()
+    if account:
+        username = account.username
+        db.session.delete(account)
+        db.session.commit()
+        
+        log = ProcessLog(
+            message=f"Removed target account from monitoring: @{username}",
+            level='info',
+            user_id=current_user.id
+        )
+        db.session.add(log)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': f'Removed @{username} from monitoring'})
+    
+    return jsonify({'success': False, 'message': 'Account not found'}), 404
 
 @app.route('/api/add_youtube_account', methods=['POST'])
 @login_required
@@ -491,23 +563,34 @@ def run_automation(user_id):
     # Simulate Instagram reel processing
     while automation_running:
         try:
-            # Check for new reels on Instagram accounts
-            instagram_accounts = InstagramAccount.query.filter_by(user_id=user_id).all()
+            # Get target accounts to monitor
+            target_accounts = TargetAccount.query.filter_by(user_id=user_id, is_active=True).all()
             
-            for account in instagram_accounts:
+            if not target_accounts:
+                log = ProcessLog(
+                    message="No target accounts configured. Please add Instagram accounts to monitor.",
+                    level='warning',
+                    user_id=user_id
+                )
+                db.session.add(log)
+                db.session.commit()
+                time.sleep(60)  # Wait 1 minute before checking again
+                continue
+            
+            for target_account in target_accounts:
                 if not automation_running:
                     break
                 
-                # Simulate finding new reels
+                # Simulate checking specific target account for new content
                 log = ProcessLog(
-                    message=f"Checking Instagram account: {account.username}",
+                    message=f"🔍 Monitoring target account: @{target_account.username}",
                     level='info',
                     user_id=user_id
                 )
                 db.session.add(log)
                 db.session.commit()
                 
-                # Simulate downloading and processing reels
+                # Simulate finding new reels from this specific account
                 time.sleep(2)
                 
                 # Generate catchy title
@@ -532,9 +615,9 @@ def run_automation(user_id):
                 filename = f"thumbnail_{user_id}_{int(time.time())}.jpg"
                 thumbnail_path = save_thumbnail(thumbnail_img, filename)
                 
-                # Create a sample reel entry
+                # Create a sample reel entry with source account info
                 reel = Reel(
-                    instagram_url="https://instagram.com/sample_reel",
+                    instagram_url=f"https://instagram.com/{target_account.username}/reel/sample",
                     title=title,
                     thumbnail_path=thumbnail_path,
                     user_id=user_id,
@@ -544,7 +627,7 @@ def run_automation(user_id):
                 db.session.commit()
                 
                 log = ProcessLog(
-                    message=f"Created EPIC thumbnail for: {title}",
+                    message=f"📱 Found new reel from @{target_account.username}: {title}",
                     level='success',
                     user_id=user_id
                 )
