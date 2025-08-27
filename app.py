@@ -48,6 +48,12 @@ class InstagramAccount(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    __table_args__ = (
+        # Ensure only one Instagram account per user (logical constraint)
+        # Note: Existing duplicates should be cleaned up via the API below
+        db.UniqueConstraint('user_id', name='uq_instagramaccount_user'),
+    )
+
 class YouTubeAccount(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), nullable=False)
@@ -311,6 +317,57 @@ def test_instagram_login(account_id):
             'success': False,
             'message': f'Error testing login: {str(e)}'
         }), 500
+
+@app.route('/api/remove_instagram_account/<int:account_id>', methods=['DELETE'])
+@login_required
+def remove_instagram_account(account_id):
+    """Remove the specified Instagram account (single-account project policy)."""
+    account = InstagramAccount.query.filter_by(id=account_id, user_id=current_user.id).first()
+    if not account:
+        return jsonify({'success': False, 'message': 'Account not found'}), 404
+
+    db.session.delete(account)
+    db.session.commit()
+
+    log = ProcessLog(
+        message=f"🗑️ Removed Instagram account: @{account.username}",
+        level='warning',
+        user_id=current_user.id
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': f'Instagram account @{account.username} removed'})
+
+@app.route('/api/keep_only_instagram_account', methods=['POST'])
+@login_required
+def keep_only_instagram_account():
+    """Keep only the provided account_id and remove all other Instagram accounts for the user."""
+    data = request.get_json() or {}
+    account_id = data.get('account_id')
+    if not account_id:
+        return jsonify({'success': False, 'message': 'account_id is required'}), 400
+
+    keep_account = InstagramAccount.query.filter_by(id=account_id, user_id=current_user.id).first()
+    if not keep_account:
+        return jsonify({'success': False, 'message': 'Account to keep not found'}), 404
+
+    others = InstagramAccount.query.filter(InstagramAccount.user_id == current_user.id, InstagramAccount.id != keep_account.id).all()
+    removed = []
+    for acc in others:
+        removed.append(acc.username)
+        db.session.delete(acc)
+    db.session.commit()
+
+    log = ProcessLog(
+        message=f"🔒 Enforced single Instagram account. Kept @{keep_account.username}, removed: {', '.join(removed) if removed else 'none'}",
+        level='info',
+        user_id=current_user.id
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    return jsonify({'success': True, 'kept': keep_account.username, 'removed': removed})
 
 @app.route('/api/add_target_account', methods=['POST'])
 @login_required

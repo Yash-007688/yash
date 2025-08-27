@@ -714,9 +714,25 @@ $(document).ready(function() {
     // Remove Instagram account function
     window.removeInstagramAccount = function(accountId) {
         if (confirm('Are you sure you want to remove this Instagram account?')) {
-            // Add remove functionality here
-            showToast('Instagram account removed', 'success');
-            refreshInstagramAccountsList();
+            $.ajax({
+                url: `/api/remove_instagram_account/${accountId}`,
+                method: 'DELETE',
+                success: function(response) {
+                    if (response.success) {
+                        showToast(response.message, 'success');
+                        refreshInstagramAccountsList();
+                    } else {
+                        showToast(response.message || 'Failed to remove Instagram account', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        showToast(xhr.responseJSON.message, 'error');
+                    } else {
+                        showToast('Error removing Instagram account', 'error');
+                    }
+                }
+            });
         }
     };
 
