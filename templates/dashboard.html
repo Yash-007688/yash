@@ -140,9 +140,12 @@
                             </div>
                             <div class="card-body">
                                 <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addInstagramModal">
-                                        <i class="fab fa-instagram me-2"></i>Add Instagram Account
-                                    </button>
+                                                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addInstagramModal">
+                        <i class="fab fa-instagram me-2"></i>Add Instagram Account
+                    </button>
+                    <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#createInstagramModal">
+                        <i class="fas fa-plus me-2"></i>🆕 Create Instagram Account
+                    </button>
                                     <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#addYouTubeModal">
                                         <i class="fab fa-youtube me-2"></i>Add YouTube Account
                                     </button>
@@ -424,6 +427,95 @@
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Instagram Account Modal -->
+<div class="modal fade" id="createInstagramModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>🆕 Create Instagram Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Create New Instagram Account</h6>
+                        <form id="createInstagramForm">
+                            <div class="mb-3">
+                                <label for="usernamePrefix" class="form-label">Username Prefix</label>
+                                <input type="text" class="form-control" id="usernamePrefix" 
+                                       placeholder="content_extractor" value="content_extractor">
+                                <div class="form-text">System will add random numbers to create unique username</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Account Type</label>
+                                <select class="form-select" id="accountType">
+                                    <option value="extractor">Content Extractor</option>
+                                    <option value="content_creator">Content Creator</option>
+                                </select>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle me-2"></i>Account Creation Process</h6>
+                                <ul class="mb-0">
+                                    <li>System will generate a unique username</li>
+                                    <li>Strong password will be created automatically</li>
+                                    <li>Account will be ready for content extraction</li>
+                                    <li>You can test login after creation</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-success btn-lg" id="createInstagramAccount">
+                                    <i class="fas fa-magic me-2"></i>Create Instagram Account
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Created Accounts</h6>
+                        <div id="instagramAccountsList">
+                            {% if instagram_accounts %}
+                                {% for account in instagram_accounts %}
+                                <div class="card mb-2 instagram-account-item" data-id="{{ account.id }}">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">@{{ account.username }}</h6>
+                                                <small class="text-muted">{{ account.account_type.replace('_', ' ').title() }}</small>
+                                                <br>
+                                                <small class="text-muted">Status: {{ account.login_status }}</small>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-sm btn-outline-primary me-2" onclick="testInstagramLogin({{ account.id }})">
+                                                    <i class="fas fa-sign-in-alt"></i> Test Login
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="removeInstagramAccount({{ account.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center text-muted py-4">
+                                    <i class="fab fa-instagram fa-3x mb-3"></i>
+                                    <p>No Instagram accounts created</p>
+                                    <small>Create accounts to start content extraction</small>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

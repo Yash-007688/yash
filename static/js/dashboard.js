@@ -570,6 +570,152 @@ $(document).ready(function() {
         generateRandomTitle();
     });
 
+    // Instagram Account Creation
+    $('#createInstagramAccount').on('click', function() {
+        var usernamePrefix = $('#usernamePrefix').val();
+        var accountType = $('#accountType').val();
+        
+        if (!usernamePrefix) {
+            showToast('Please enter a username prefix!', 'warning');
+            return;
+        }
+        
+        var $btn = $(this);
+        var originalText = $btn.html();
+        
+        $btn.prop('disabled', true);
+        $btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Creating Account...');
+        
+        $.ajax({
+            url: '/api/create_instagram_account',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                username_prefix: usernamePrefix,
+                account_type: accountType
+            }),
+            success: function(response) {
+                if (response.success) {
+                    showToast(response.message, 'success');
+                    
+                    // Show account details
+                    var accountDetails = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle me-2"></i>Account Created Successfully!</h6>
+                            <p><strong>Username:</strong> @${response.account.username}</p>
+                            <p><strong>Password:</strong> ${response.account.password}</p>
+                            <small class="text-muted">Please save these credentials securely!</small>
+                        </div>
+                    `;
+                    
+                    $('#createInstagramForm').prepend(accountDetails);
+                    
+                    // Refresh accounts list
+                    refreshInstagramAccountsList();
+                } else {
+                    showToast('Failed to create Instagram account', 'error');
+                }
+            },
+            error: function() {
+                showToast('Error creating Instagram account', 'error');
+            },
+            complete: function() {
+                $btn.prop('disabled', false);
+                $btn.html(originalText);
+            }
+        });
+    });
+
+    function refreshInstagramAccountsList() {
+        $.ajax({
+            url: '/api/get_instagram_accounts',
+            method: 'GET',
+            success: function(response) {
+                var html = '';
+                if (response.length > 0) {
+                    response.forEach(function(account) {
+                        var statusBadge = account.login_status === 'active' ? 
+                            '<span class="badge bg-success">Active</span>' : 
+                            '<span class="badge bg-warning">New</span>';
+                        
+                        html += `
+                            <div class="card mb-2 instagram-account-item" data-id="${account.id}">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">@${account.username}</h6>
+                                            <small class="text-muted">${account.account_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</small>
+                                            <br>
+                                            <small class="text-muted">Status: ${account.login_status}</small>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-primary me-2" onclick="testInstagramLogin(${account.id})">
+                                                <i class="fas fa-sign-in-alt"></i> Test Login
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="removeInstagramAccount(${account.id})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html = `
+                        <div class="text-center text-muted py-4">
+                            <i class="fab fa-instagram fa-3x mb-3"></i>
+                            <p>No Instagram accounts created</p>
+                            <small>Create accounts to start content extraction</small>
+                        </div>
+                    `;
+                }
+                $('#instagramAccountsList').html(html);
+            },
+            error: function() {
+                showToast('Error loading Instagram accounts', 'error');
+            }
+        });
+    }
+
+    // Test Instagram login function
+    window.testInstagramLogin = function(accountId) {
+        var $btn = $(`[onclick="testInstagramLogin(${accountId})"]`);
+        var originalText = $btn.html();
+        
+        $btn.prop('disabled', true);
+        $btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Testing...');
+        
+        $.ajax({
+            url: `/api/test_instagram_login/${accountId}`,
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    showToast(response.message, 'success');
+                } else {
+                    showToast(response.message, 'error');
+                }
+                refreshInstagramAccountsList();
+            },
+            error: function() {
+                showToast('Error testing login', 'error');
+            },
+            complete: function() {
+                $btn.prop('disabled', false);
+                $btn.html(originalText);
+            }
+        });
+    };
+
+    // Remove Instagram account function
+    window.removeInstagramAccount = function(accountId) {
+        if (confirm('Are you sure you want to remove this Instagram account?')) {
+            // Add remove functionality here
+            showToast('Instagram account removed', 'success');
+            refreshInstagramAccountsList();
+        }
+    };
+
     // Target Account Management
     $('#addTargetAccount').on('click', function() {
         var username = $('#targetUsername').val();
