@@ -144,7 +144,7 @@
                         <i class="fab fa-instagram me-2"></i>Add Instagram Account
                     </button>
                     <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#createInstagramModal">
-                        <i class="fas fa-plus me-2"></i>🆕 Create Instagram Account
+                        <i class="fas fa-plus me-2"></i>🆕 Create Single Instagram Account
                     </button>
                                     <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#addYouTubeModal">
                                         <i class="fab fa-youtube me-2"></i>Add YouTube Account
@@ -441,14 +441,14 @@
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title">
-                    <i class="fas fa-plus me-2"></i>🆕 Create Instagram Account
+                    <i class="fas fa-plus me-2"></i>🆕 Create Single Instagram Account
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h6>Create New Instagram Account</h6>
+                        <h6>Create Single Instagram Account</h6>
                         <form id="createInstagramForm">
                             <div class="mb-3">
                                 <label for="usernamePrefix" class="form-label">Username Prefix</label>
@@ -458,33 +458,34 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label class="form-label">Account Type</label>
-                                <select class="form-select" id="accountType">
-                                    <option value="extractor">Content Extractor</option>
-                                    <option value="content_creator">Content Creator</option>
+                                <label class="form-label">Account Purpose</label>
+                                <select class="form-select" id="accountType" disabled>
+                                    <option value="reel_watcher" selected>Reel Watcher</option>
                                 </select>
+                                <div class="form-text">This account will be used to watch and extract reels from target accounts</div>
                             </div>
                             
                             <div class="alert alert-info">
-                                <h6><i class="fas fa-info-circle me-2"></i>Account Creation Process</h6>
+                                <h6><i class="fas fa-info-circle me-2"></i>Single Account System</h6>
                                 <ul class="mb-0">
+                                    <li>Only ONE Instagram account per user</li>
                                     <li>System will generate a unique username</li>
                                     <li>Strong password will be created automatically</li>
-                                    <li>Account will be ready for content extraction</li>
+                                    <li>Account will be used to watch reels from target accounts</li>
                                     <li>You can test login after creation</li>
                                 </ul>
                             </div>
                             
                             <div class="d-grid">
                                 <button type="button" class="btn btn-success btn-lg" id="createInstagramAccount">
-                                    <i class="fas fa-magic me-2"></i>Create Instagram Account
+                                    <i class="fas fa-magic me-2"></i>Create Single Instagram Account
                                 </button>
                             </div>
                         </form>
                     </div>
                     
                     <div class="col-md-6">
-                        <h6>Created Accounts</h6>
+                        <h6>Your Instagram Account</h6>
                         <div id="instagramAccountsList">
                             {% if instagram_accounts %}
                                 {% for account in instagram_accounts %}
@@ -493,7 +494,7 @@
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
                                                 <h6 class="mb-1">@{{ account.username }}</h6>
-                                                <small class="text-muted">{{ account.account_type.replace('_', ' ').title() }}</small>
+                                                <small class="text-muted">Reel Watcher Account</small>
                                                 <br>
                                                 <small class="text-muted">Status: {{ account.login_status }}</small>
                                             </div>
@@ -512,8 +513,8 @@
                             {% else %}
                                 <div class="text-center text-muted py-4">
                                     <i class="fab fa-instagram fa-3x mb-3"></i>
-                                    <p>No Instagram accounts created</p>
-                                    <small>Create accounts to start content extraction</small>
+                                    <p>No Instagram account created</p>
+                                    <small>Create your Instagram account to start watching reels</small>
                                 </div>
                             {% endif %}
                         </div>

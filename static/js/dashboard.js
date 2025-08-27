@@ -601,10 +601,10 @@ $(document).ready(function() {
                     // Show account details
                     var accountDetails = `
                         <div class="alert alert-success">
-                            <h6><i class="fas fa-check-circle me-2"></i>Account Created Successfully!</h6>
+                            <h6><i class="fas fa-check-circle me-2"></i>Instagram Account Created Successfully!</h6>
                             <p><strong>Username:</strong> @${response.account.username}</p>
                             <p><strong>Password:</strong> ${response.account.password}</p>
-                            <small class="text-muted">Please save these credentials securely!</small>
+                            <small class="text-muted">This account will be used to watch reels from target accounts</small>
                         </div>
                     `;
                     
@@ -613,11 +613,15 @@ $(document).ready(function() {
                     // Refresh accounts list
                     refreshInstagramAccountsList();
                 } else {
-                    showToast('Failed to create Instagram account', 'error');
+                    showToast(response.message || 'Failed to create Instagram account', 'error');
                 }
             },
-            error: function() {
-                showToast('Error creating Instagram account', 'error');
+            error: function(xhr) {
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    showToast(xhr.responseJSON.message, 'error');
+                } else {
+                    showToast('Error creating Instagram account', 'error');
+                }
             },
             complete: function() {
                 $btn.prop('disabled', false);
@@ -644,7 +648,7 @@ $(document).ready(function() {
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
                                             <h6 class="mb-1">@${account.username}</h6>
-                                            <small class="text-muted">${account.account_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</small>
+                                            <small class="text-muted">Reel Watcher Account</small>
                                             <br>
                                             <small class="text-muted">Status: ${account.login_status}</small>
                                         </div>
@@ -665,15 +669,15 @@ $(document).ready(function() {
                     html = `
                         <div class="text-center text-muted py-4">
                             <i class="fab fa-instagram fa-3x mb-3"></i>
-                            <p>No Instagram accounts created</p>
-                            <small>Create accounts to start content extraction</small>
+                            <p>No Instagram account created</p>
+                            <small>Create your Instagram account to start watching reels</small>
                         </div>
                     `;
                 }
                 $('#instagramAccountsList').html(html);
             },
             error: function() {
-                showToast('Error loading Instagram accounts', 'error');
+                showToast('Error loading Instagram account', 'error');
             }
         });
     }

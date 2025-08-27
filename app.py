@@ -42,7 +42,6 @@ class InstagramAccount(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), nullable=False)
     password = db.Column(db.String(120), nullable=False)
-    account_type = db.Column(db.String(50), default='extractor')  # extractor, content_creator
     is_active = db.Column(db.Boolean, default=True)
     last_login = db.Column(db.DateTime)
     login_status = db.Column(db.String(20), default='unknown')  # active, suspended, blocked
@@ -167,10 +166,15 @@ def dashboard():
 @login_required
 def add_instagram_account():
     data = request.get_json()
+    
+    # Check if user already has an Instagram account
+    existing_account = InstagramAccount.query.filter_by(user_id=current_user.id).first()
+    if existing_account:
+        return jsonify({'success': False, 'message': 'You already have an Instagram account. Only one account is allowed.'}), 400
+    
     account = InstagramAccount(
         username=data['username'],
         password=data['password'],
-        account_type=data.get('account_type', 'extractor'),
         user_id=current_user.id
     )
     db.session.add(account)
@@ -184,20 +188,25 @@ def add_instagram_account():
     db.session.add(log)
     db.session.commit()
     
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'message': f'Instagram account @{data["username"]} added successfully!'})
 
 @app.route('/api/create_instagram_account', methods=['POST'])
 @login_required
 def create_instagram_account():
-    """Create a new Instagram account for content extraction"""
+    """Create a single Instagram account for content extraction"""
     data = request.get_json()
+    
+    # Check if user already has an Instagram account
+    existing_account = InstagramAccount.query.filter_by(user_id=current_user.id).first()
+    if existing_account:
+        return jsonify({'success': False, 'message': 'You already have an Instagram account. Only one account is allowed.'}), 400
     
     # Generate random username and password
     import random
     import string
     
     # Generate random username
-    username_prefix = data.get('username_prefix', 'content_extractor')
+    username_prefix = data.get('username_prefix', 'reel_watcher')
     random_suffix = ''.join(random.choices(string.digits, k=4))
     username = f"{username_prefix}_{random_suffix}"
     
@@ -208,7 +217,6 @@ def create_instagram_account():
     account = InstagramAccount(
         username=username,
         password=password,
-        account_type='extractor',
         is_active=True,
         login_status='new',
         user_id=current_user.id
@@ -217,7 +225,7 @@ def create_instagram_account():
     db.session.commit()
     
     log = ProcessLog(
-        message=f"Created new Instagram account: @{username} for content extraction",
+        message=f"Created Instagram account: @{username} for reel watching",
         level='success',
         user_id=current_user.id
     )
@@ -231,23 +239,24 @@ def create_instagram_account():
             'password': password,
             'id': account.id
         },
-        'message': f'Created Instagram account: @{username}'
+        'message': f'Created Instagram account: @{username} for reel watching'
     })
 
 @app.route('/api/get_instagram_accounts')
 @login_required
 def get_instagram_accounts():
-    """Get all Instagram accounts"""
-    accounts = InstagramAccount.query.filter_by(user_id=current_user.id).all()
-    return jsonify([{
-        'id': account.id,
-        'username': account.username,
-        'account_type': account.account_type,
-        'is_active': account.is_active,
-        'login_status': account.login_status,
-        'last_login': account.last_login.strftime('%Y-%m-%d %H:%M:%S') if account.last_login else None,
-        'created_at': account.created_at.strftime('%Y-%m-%d %H:%M:%S')
-    } for account in accounts])
+    """Get user's Instagram account"""
+    account = InstagramAccount.query.filter_by(user_id=current_user.id).first()
+    if account:
+        return jsonify([{
+            'id': account.id,
+            'username': account.username,
+            'is_active': account.is_active,
+            'login_status': account.login_status,
+            'last_login': account.last_login.strftime('%Y-%m-%d %H:%M:%S') if account.last_login else None,
+            'created_at': account.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        }])
+    return jsonify([])
 
 @app.route('/api/test_instagram_login/<int:account_id>', methods=['POST'])
 @login_required
@@ -685,12 +694,12 @@ def run_automation(user_id):
     # Simulate Instagram reel processing
     while automation_running:
         try:
-            # Get Instagram accounts for content extraction
-            instagram_accounts = InstagramAccount.query.filter_by(user_id=user_id, is_active=True, login_status='active').all()
+            # Get user's Instagram account for content extraction
+            instagram_account = InstagramAccount.query.filter_by(user_id=user_id, is_active=True, login_status='active').first()
             
-            if not instagram_accounts:
+            if not instagram_account:
                 log = ProcessLog(
-                    message="No active Instagram accounts for content extraction. Please create or activate Instagram accounts.",
+                    message="No active Instagram account for content extraction. Please create or activate your Instagram account.",
                     level='warning',
                     user_id=user_id
                 )
@@ -713,34 +722,30 @@ def run_automation(user_id):
                 time.sleep(60)  # Wait 1 minute before checking again
                 continue
             
-            # Use Instagram accounts to extract content from target accounts
-            for instagram_account in instagram_accounts:
+            # Use single Instagram account to extract content from target accounts
+            log = ProcessLog(
+                message=f"🔐 Using Instagram account: @{instagram_account.username} for reel watching",
+                level='info',
+                user_id=user_id
+            )
+            db.session.add(log)
+            db.session.commit()
+            
+            for target_account in target_accounts:
                 if not automation_running:
                     break
                 
+                # Simulate using Instagram account to check target account
                 log = ProcessLog(
-                    message=f"🔐 Using Instagram account: @{instagram_account.username} for content extraction",
+                    message=f"🔍 @{instagram_account.username} watching @{target_account.username}",
                     level='info',
                     user_id=user_id
                 )
                 db.session.add(log)
                 db.session.commit()
                 
-                for target_account in target_accounts:
-                    if not automation_running:
-                        break
-                    
-                    # Simulate using Instagram account to check target account
-                    log = ProcessLog(
-                        message=f"🔍 @{instagram_account.username} monitoring @{target_account.username}",
-                        level='info',
-                        user_id=user_id
-                    )
-                    db.session.add(log)
-                    db.session.commit()
-                    
-                    # Simulate finding new reels from this specific account
-                    time.sleep(2)
+                # Simulate finding new reels from this specific account
+                time.sleep(2)
                 
                 # Generate catchy title
                 catchy_titles = [
