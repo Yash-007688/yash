@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - YouTube Automation Platform{% endblock %}
+
+{% block content %}
+<div class="dashboard-header mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-6">
+            <h1 class="h2 mb-0">
+                <i class="fas fa-tachometer-alt me-2 text-primary"></i>Dashboard
+            </h1>
+            <p class="text-muted mb-0">Welcome back, {{ current_user.username }}!</p>
+        </div>
+        <div class="col-md-6 text-md-end">
+            <div class="automation-status">
+                <span class="badge bg-success fs-6" id="automationStatus">
+                    <i class="fas fa-play me-1"></i>Automation Ready
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fab fa-instagram fa-2x text-danger"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="mb-0">{{ instagram_accounts|length }}</h4>
+                        <p class="text-muted mb-0">Instagram Accounts</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fab fa-youtube fa-2x text-danger"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="mb-0">{{ youtube_accounts|length }}</h4>
+                        <p class="text-muted mb-0">YouTube Accounts</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-video fa-2x text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="mb-0">{{ reels|length }}</h4>
+                        <p class="text-muted mb-0">Processed Reels</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-chart-line fa-2x text-success"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h4 class="mb-0" id="totalViews">0</h4>
+                        <p class="text-muted mb-0">Total Views</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Automation Controls -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-robot me-2"></i>Automation Controls
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <button class="btn btn-success btn-lg w-100" id="startAutomation">
+                            <i class="fas fa-play me-2"></i>Start Automation
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-danger btn-lg w-100" id="stopAutomation">
+                            <i class="fas fa-stop me-2"></i>Stop Automation
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" id="automationProgress" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted" id="automationStatusText">Automation is ready to start</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addInstagramModal">
+                        <i class="fab fa-instagram me-2"></i>Add Instagram Account
+                    </button>
+                    <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#addYouTubeModal">
+                        <i class="fab fa-youtube me-2"></i>Add YouTube Account
+                    </button>
+                    <button class="btn btn-outline-success" id="refreshData">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="row g-4">
+    <!-- Reels Monitoring -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-video me-2"></i>Recent Reels & Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Views</th>
+                                <th>Likes</th>
+                                <th>Comments</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reelsTable">
+                            {% for reel in reels %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ reel.thumbnail_path or '/static/images/default-thumbnail.jpg' }}" 
+                                             class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                        <div>
+                                            <div class="fw-bold">{{ reel.title or 'Untitled' }}</div>
+                                            <small class="text-muted">{{ reel.instagram_url[:30] }}...</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if reel.status == 'processed' else 'warning' }}">
+                                        {{ reel.status }}
+                                    </span>
+                                </td>
+                                <td>{{ reel.views_count }}</td>
+                                <td>{{ reel.likes_count }}</td>
+                                <td>{{ reel.comments_count }}</td>
+                                <td>{{ reel.created_at.strftime('%Y-%m-%d') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time Logs -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-terminal me-2"></i>Process Logs
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="logs-container" id="logsContainer" style="height: 400px; overflow-y: auto;">
+                    {% for log in logs %}
+                    <div class="log-entry p-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="log-message">{{ log.message }}</div>
+                                <small class="text-muted">{{ log.created_at.strftime('%H:%M:%S') }}</small>
+                            </div>
+                            <span class="badge bg-{{ 'success' if log.level == 'success' else 'danger' if log.level == 'error' else 'info' }} ms-2">
+                                {{ log.level }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Instagram Account Modal -->
+<div class="modal fade" id="addInstagramModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fab fa-instagram me-2"></i>Add Instagram Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addInstagramForm">
+                    <div class="mb-3">
+                        <label for="instagramUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="instagramUsername" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="instagramPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="instagramPassword" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveInstagramAccount">
+                    <i class="fas fa-save me-2"></i>Save Account
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add YouTube Account Modal -->
+<div class="modal fade" id="addYouTubeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fab fa-youtube me-2"></i>Add YouTube Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addYouTubeForm">
+                    <div class="mb-3">
+                        <label for="youtubeEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="youtubeEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="youtubePassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="youtubePassword" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="saveYouTubeAccount">
+                    <i class="fas fa-save me-2"></i>Save Account
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
