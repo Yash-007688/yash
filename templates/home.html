@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Home - YouTube Automation Platform{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center py-5">
+    <div class="container">
+        <h1 class="display-4 fw-bold text-primary mb-4">
+            <i class="fab fa-youtube me-3"></i>YouTube Automation Platform
+        </h1>
+        <p class="lead mb-4">Transform Instagram reels into viral YouTube content with AI-powered automation</p>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                    {% if not current_user.is_authenticated %}
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4 me-sm-3">
+                        <i class="fas fa-rocket me-2"></i>Get Started
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg px-4">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg px-4 me-sm-3">
+                        <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="features-section py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">How It Works</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i class="fab fa-instagram fa-3x text-danger"></i>
+                        </div>
+                        <h5 class="card-title">1. Instagram Integration</h5>
+                        <p class="card-text">Connect your Instagram accounts and automatically monitor for new reels. Our system downloads and processes content in Hindi.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i class="fas fa-robot fa-3x text-success"></i>
+                        </div>
+                        <h5 class="card-title">2. AI Content Processing</h5>
+                        <p class="card-text">Our AI bot analyzes Hindi content, generates engaging titles, and creates eye-catching thumbnails automatically.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i class="fab fa-youtube fa-3x text-danger"></i>
+                        </div>
+                        <h5 class="card-title">3. YouTube Automation</h5>
+                        <p class="card-text">Automatically upload processed content to your YouTube accounts and monitor performance metrics in real-time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="benefits-section py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Key Benefits</h2>
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="d-flex align-items-start mb-4">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock fa-2x text-primary me-3"></i>
+                    </div>
+                    <div>
+                        <h5>Save Time</h5>
+                        <p>Automate the entire process from Instagram monitoring to YouTube upload, saving hours of manual work.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="d-flex align-items-start mb-4">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-chart-line fa-2x text-success me-3"></i>
+                    </div>
+                    <div>
+                        <h5>Track Performance</h5>
+                        <p>Monitor likes, views, comments, and subscriber growth with detailed analytics and real-time dashboards.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="d-flex align-items-start mb-4">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-language fa-2x text-warning me-3"></i>
+                    </div>
+                    <div>
+                        <h5>Hindi Content Support</h5>
+                        <p>Specialized AI processing for Hindi content with accurate title generation and thumbnail creation.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="d-flex align-items-start mb-4">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-shield-alt fa-2x text-info me-3"></i>
+                    </div>
+                    <div>
+                        <h5>Secure & Reliable</h5>
+                        <p>Enterprise-grade security with encrypted account credentials and reliable automation processes.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="cta-section py-5 bg-primary text-white">
+    <div class="container text-center">
+        <h2 class="mb-4">Ready to Automate Your YouTube Success?</h2>
+        <p class="lead mb-4">Join thousands of creators who are already using our platform to grow their YouTube channels.</p>
+        {% if not current_user.is_authenticated %}
+        <a href="{{ url_for('register') }}" class="btn btn-light btn-lg px-5">
+            <i class="fas fa-user-plus me-2"></i>Start Free Trial
+        </a>
+        {% else %}
+        <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-lg px-5">
+            <i class="fas fa-tachometer-alt me-2"></i>Access Dashboard
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
